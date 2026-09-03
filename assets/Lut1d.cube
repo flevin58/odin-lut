@@ -1,0 +1,14 @@
+TITLE "Simple 1D Linear Darken"
+
+# Define this is a 1D LUT with 4 sample points
+LUT_1D_SIZE 4
+
+# Domain specifies the minimum and maximum input values
+DOMAIN_MIN 0.0 0.0 0.0
+DOMAIN_MAX 1.0 1.0 1.0
+
+# Red, Green, and Blue output values mapped from 0.0 to 1.0
+0.0 0.0 0.0
+0.2 0.2 0.2
+0.5 0.5 0.5
+0.8 0.8 0.8
