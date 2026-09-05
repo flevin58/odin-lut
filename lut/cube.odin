@@ -2,8 +2,10 @@ package lut
 
 import "core:fmt"
 import "core:os"
+import "core:slice"
 import "core:strconv"
 import "core:strings"
+import stbi "vendor:stb/image"
 
 MAX_LINE_LEN :: 250
 MIN_SIZE_1D :: 2
@@ -30,7 +32,25 @@ destroy_cube :: proc(cube: ^Cube) {
 	free(cube)
 }
 
-load_cube :: proc(filepath: string) -> ^Cube {
+load_cube_from_bytes :: proc(buffer: [^]u8, size: int) -> ^Cube {
+	lut := new(Cube)
+	lut.domain_min = {0, 0, 0}
+	lut.domain_max = {1, 1, 1}
+	lut.size_3d = size
+	bufsize := size * size * size
+	lut.data_3d = make([]TableRow, bufsize)
+	index := 0
+	for i := 0; i < bufsize * size_of(TableRow); i += 3 {
+		rf := (f32(buffer[i + 0]) / MAX_VAL) * 255.0 + 0.5
+		gf := (f32(buffer[i + 1]) / MAX_VAL) * 255.0 + 0.5
+		bf := (f32(buffer[i + 2]) / MAX_VAL) * 255.0 + 0.5
+		data_row := TableRow{rf, gf, bf}
+		lut.data_3d[index] = data_row
+	}
+	return lut
+}
+
+load_cube_from_file :: proc(filepath: string) -> ^Cube {
 	// Read the file into memory
 	data, err := os.read_entire_file(filepath, context.allocator)
 	if err != nil {
@@ -41,7 +61,8 @@ load_cube :: proc(filepath: string) -> ^Cube {
 	defer delete(data, context.allocator)
 
 	lut := new(Cube)
-	lut.domain_max = {1.0, 1.0, 1.0}
+	lut.domain_min = {0, 0, 0}
+	lut.domain_max = {1, 1, 1}
 	linenum := 1
 	r, g, b: int
 	n: int
@@ -139,7 +160,7 @@ load_cube :: proc(filepath: string) -> ^Cube {
 	return lut
 }
 
-save_cube :: proc(lut: ^Cube, filename: string) {
+save_cube_to_file :: proc(lut: ^Cube, filename: string) {
 	f, err := os.create(filename)
 	defer os.close(f)
 
@@ -207,4 +228,28 @@ save_cube :: proc(lut: ^Cube, filename: string) {
 		}
 		return
 	}
+}
+
+save_cube_to_png :: proc(pcube: ^Cube, filename: string) {
+	c_filename := strings.clone_to_cstring(filename, context.allocator)
+	defer delete(c_filename)
+
+	index, found := slice.linear_search(VALID_HALD_SIZES, i32(pcube.size_3d))
+
+	pixels := make([]u8, BUFFER_SIZE)
+	err := stbi.write_png(
+		c_filename,
+		IMG_DIM,
+		IMG_DIM,
+		BYTES_PER_PIXEL,
+		raw_data(pixels),
+		STRIDE_IN_BYTES,
+	)
+
+	if err != 0 {
+		fmt.printfln("HALD image successfully created: %s (%dx%d)", HALD_PNG, IMG_DIM, IMG_DIM)
+	} else {
+		fmt.println("Error creating the HALD image.")
+	}
+
 }
