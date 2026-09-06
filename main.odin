@@ -5,20 +5,28 @@ import "core:os"
 import "lut"
 
 main :: proc() {
-	// if len(os.args) != 2 {
-	// 	fmt.eprintln("Missing LUT file to load")
-	// 	os.exit(1)
+	c1 := lut.canvas_create_hald(8)
+	defer lut.canvas_destroy(&c1)
+	lut.canvas_save(&c1, "hald_8_c1.png")
+	pcube := lut.cube_from_canvas(&c1)
+	lut.cube_save_to_file(pcube, "pippo.cube")
+
+	c2 := lut.canvas_load("hald_8_c1.png")
+	defer lut.canvas_destroy(&c2)
+	lut.canvas_save(&c2, "hald_8_c2.png")
+
+	fmt.printfln("Are equal: %v", lut.canvas_are_equal(&c1, &c2))
+
+	pc := lut.cube_from_file("assets/Milo5.cube")
+	c3 := lut.cube_to_canvas(pc)
+	lut.canvas_save(c3, "assets/Milo5.png")
+	// for y in 0 ..< c1.height {
+	// 	for x in 0 ..< c1.width {
+	// 		fmt.printfln(
+	// 			"c1: %d - c2: %d",
+	// 			lut.canvas_get_color_at(&c1, x, y),
+	// 			lut.canvas_get_color_at(&c2, x, y),
+	// 		)
+	// 	}
 	// }
-	// plut := lut.load_cube(os.args[1])
-	// defer free(plut)
-
-	// lut.save_cube(plut, "assets/pippo.cube")
-	lut.create_neutral_hald(10)
-
-	// phald := lut.load_from_hald("assets/hald_identity_8.png")
-	// defer free(phald)
-	// lut.save_cube_to_file(phald, "assets/hald_identity_8_bis.cube")
-	// plut := lut.load_cube_from_file("assets/hald_identity_8_bis.cube")
-	// defer free(plut)
-	// lut.save_cube_to_png(plut, "assets/hald_identity_8_bis.png")
 }
