@@ -15,12 +15,12 @@ TableRow :: #type [3]f32
 
 Cube :: struct {
 	title:      string,
-	domain_min: TableRow,
-	domain_max: TableRow,
+	domain_min: LutColor,
+	domain_max: LutColor,
 	size_1d:    int,
-	data_1d:    [^]f32,
+	data_1d:    [^]LutColor,
 	size_3d:    int,
-	data_3d:    [^]f32,
+	data_3d:    [^]LutColor,
 }
 
 cube_from_canvas :: proc(pcanvas: ^Canvas) -> (cube: ^Cube) {
@@ -31,48 +31,12 @@ cube_from_canvas :: proc(pcanvas: ^Canvas) -> (cube: ^Cube) {
 	cube.domain_min = {0, 0, 0}
 	cube.domain_max = {1, 1, 1}
 	cube.size_3d = level
-	bufsize := level * level * level * 3
-	cube.data_3d = make([^]f32, bufsize)
-	index := 0
-	for i := 0; i < bufsize; i += 1 {
-		cube.data_3d[i] = pcanvas.pixels[i]
+	bufsize := level * level * level
+	cube.data_3d = make([^]LutColor, bufsize)
+
+	for i in 0 ..< bufsize {
+		cube.data_3d[i] = color_from_RGB(pcanvas.pixels[i])
 	}
-	return
-}
-
-cube_to_canvas :: proc(pcube: ^Cube) -> (pcanvas: ^Canvas) {
-	level := pcube.size_3d
-	if level == 0 do return nil
-	width := level * level * level
-	height := width
-	cube_size := level * level
-	pcanvas = new(Canvas)
-
-	// Allocate the buffer
-	size := width * height * 3
-	buffer, err := make([^]f32, size)
-	if err != nil {
-		fmt.eprintln("Error allocating buffer for the canvas")
-		os.exit(1)
-	}
-
-	// Copy the Cube colors
-	// i := 0
-	// for b in 0 ..< cube_size {
-	// 	for g in 0 ..< cube_size {
-	// 		for r in 0 ..< cube_size {
-	// 			buffer[i + 0] = pcube.data_3d
-	// 			buffer[i + 1] = f32(g) / (f32)(cube_size - 1)
-	// 			buffer[i + 2] = f32(b) / (f32)(cube_size - 1)
-	// 			i += 3
-	// 		}
-	// 	}
-	// }
-
-	// Return the canvas
-	pcanvas.width = width
-	pcanvas.height = height
-	pcanvas.pixels = pcube.data_3d
 	return
 }
 
@@ -122,7 +86,7 @@ cube_from_file :: proc(filepath: string) -> (cube: ^Cube) {
 				return nil
 			}
 			cube.size_3d = value
-			cube.data_3d = make([^]f32, value * value * value * 3)
+			cube.data_3d = make([^]LutColor, value * value * value)
 		case "LUT_1D_SIZE":
 			value, ok := strconv.parse_int(fields[1], 10)
 			if !ok || value < MIN_SIZE_1D || value > MAX_SIZE_1D {
@@ -131,7 +95,7 @@ cube_from_file :: proc(filepath: string) -> (cube: ^Cube) {
 				return nil
 			}
 			cube.size_1d = value
-			cube.data_1d = make([^]f32, value * 3)
+			cube.data_1d = make([^]LutColor, value)
 			if err != nil {
 				fmt.println("Error at line %d: not enough memory to allocate the LUT1D", linenum)
 				free(cube)
@@ -172,15 +136,11 @@ cube_from_file :: proc(filepath: string) -> (cube: ^Cube) {
 				}
 			}
 			if cube.size_1d > 0 {
-				cube.data_1d[n + 0] = data_row.r
-				cube.data_1d[n + 1] = data_row.g
-				cube.data_1d[n + 2] = data_row.b
-				n += 3
+				cube.data_1d[n] = data_row
+				n += 1
 			} else if cube.size_3d > 0 {
 				n = r + g * cube.size_3d + b * cube.size_3d * cube.size_3d
-				cube.data_3d[n + 0] = data_row.r
-				cube.data_3d[n + 1] = data_row.g
-				cube.data_3d[n + 2] = data_row.b
+				cube.data_3d[n] = data_row
 				r += 1
 				if r == cube.size_3d {
 					r = 0
@@ -222,8 +182,9 @@ cube_save_to_file :: proc(cube: ^Cube, filename: string) {
 			cube.domain_max[1],
 			cube.domain_max[2],
 		)
-		for i := 0; i < cube.size_1d; i += 3 {
-			fmt.fprintfln(
+		for i in 0 ..< cube.size_1d {
+			fmt.fprintln(
+				f,
 				f,
 				"%.6f %.6f %.6f",
 				cube.data_1d[i + 0],
@@ -256,9 +217,9 @@ cube_save_to_file :: proc(cube: ^Cube, filename: string) {
 					fmt.fprintfln(
 						f,
 						"%.6f %.6f %.6f",
-						cube.data_3d[n + 0],
-						cube.data_3d[n + 1],
-						cube.data_3d[n + 2],
+						cube.data_3d[n].r,
+						cube.data_3d[n].g,
+						cube.data_3d[n].b,
 					)
 				}
 			}

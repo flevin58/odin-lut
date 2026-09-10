@@ -5,12 +5,12 @@
             "name": "Debug Odin application",
             "type": "lldb",
             "request": "launch",
+            "preLaunchTask": "Build",
             "program": "${workspaceFolder}/build/myapp_debug",
             "args": [
                 "assets/Milo5.cube"
             ],
             "cwd": "${workspaceFolder}",
-            "preLaunchTask": "build-odin-debug"
         },
     ]
 }
